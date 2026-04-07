@@ -1,6 +1,7 @@
 package com.arttest.todo.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,9 +19,12 @@ import com.arttest.todo.data.TodoItem
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
+@OptIn(ExperimentalFoundationApi::class)
+
 /**
  * Todo 列表项卡片 - Material You 风格
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TodoItemCard(
     todo: TodoItem,

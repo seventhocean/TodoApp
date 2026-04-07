@@ -22,6 +22,12 @@
 - ✅ 多维度筛选（全部/未完成/已完成/高优先级/即将到期）
 - ✅ 删除已完成事项
 - ✅ 统计显示（未完成数/总数）
+- ✅ 本地提醒通知（WorkManager 调度）
+- ✅ 子任务管理
+- ✅ 重复任务设置（每天/每周/每月/每年）
+- ✅ 批量操作（批量完成/删除/标记未完成）
+- ✅ 数据导出/导入（JSON 格式）
+- ✅ 数据统计图表（完成趋势/分类分布/优先级分布）
 
 ## Material You 设计特性
 
@@ -103,6 +109,21 @@ APK 将生成在 `app/build/outputs/apk/debug/` 目录
 | updatedAt | LocalDateTime | 更新时间 |
 | hasReminder | Boolean | 是否有提醒 |
 | reminderTime | LocalDateTime? | 提醒时间 |
+| repeatType | RepeatType | 重复类型 (枚举) |
+| repeatEndDate | LocalDate? | 重复结束日期 |
+
+### SubTask 表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Long | 主键，自增 |
+| parentTodoId | Long | 父任务 ID (外键) |
+| title | String | 子任务标题 |
+| description | String | 子任务描述 |
+| isCompleted | Boolean | 完成状态 |
+| priority | Priority | 优先级 |
+| dueDate | LocalDate? | 截止日期 |
+| sortOrder | Int | 排序顺序 |
 
 ## 截图
 
@@ -110,14 +131,15 @@ APK 将生成在 `app/build/outputs/apk/debug/` 目录
 
 ## 后续计划
 
-- [ ] 本地提醒通知
-- [ ] 子任务功能
-- [ ] 重复任务设置
-- [ ] 数据统计图表
+- [x] 本地提醒通知
+- [x] 子任务功能
+- [x] 重复任务设置
+- [x] 数据统计图表
+- [x] 批量操作功能
+- [x] 导出/导入功能
 - [ ] 云同步备份
-- [ ] 深色主题完善
 - [ ] 桌面小部件
-- [ ] 导出/导入功能
+- [ ] 更多主题配色
 
 ## License
 

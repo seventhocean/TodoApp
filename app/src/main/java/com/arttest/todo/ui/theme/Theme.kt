@@ -102,8 +102,8 @@ fun ToDoAppTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // 设置状态栏颜色与背景融合
-            window.statusBarColor = Color.Transparent.toArgb()
+            // 使用 WindowCompat 设置状态栏样式
+            WindowCompat.setDecorFitsSystemWindows(window, false)
             // 亮色主题使用深色状态栏图标
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }

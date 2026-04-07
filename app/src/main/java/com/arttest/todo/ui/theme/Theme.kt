@@ -79,7 +79,7 @@ private val DarkColorScheme = darkColorScheme(
     error = Color(0xFFF2B8B5),
     onError = Color(0xFF601410),
     errorContainer = Color(0xFF8C1D18),
-    onErrorContainer = Color(0xFFF9DEDC
+    onErrorContainer = Color(0xFFF9DEDC)
 )
 
 @Composable
@@ -112,7 +112,7 @@ fun ToDoAppTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Typography // 使用带 Google Fonts 的版本
+            typography // 使用带 Google Fonts 的版本
         } else {
             simpleTypography // 旧版本使用系统字体
         },

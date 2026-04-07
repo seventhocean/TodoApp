@@ -19,8 +19,6 @@ import com.arttest.todo.data.TodoItem
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-@OptIn(ExperimentalFoundationApi::class)
-
 /**
  * Todo 列表项卡片 - Material You 风格
  */

@@ -1,6 +1,10 @@
 package com.arttest.todo.viewmodel
 
 import android.app.Application
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.arttest.todo.data.*
@@ -8,8 +12,13 @@ import com.arttest.todo.notification.NotificationHelper
 import com.arttest.todo.notification.ReminderWorker
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.io.FileWriter
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 /**
@@ -440,6 +449,147 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
             }
             _selectedIds.value = emptySet()
             _selectionMode.value = false
+        }
+    }
+
+    // ============ 导出/导入 ============
+
+    /**
+     * 导出待办事项到 JSON 文件
+     */
+    fun exportToUri(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val todos = dao.getAllTodos().first()
+                val subTasks = TodoDatabase.getDatabase(context).subTaskDao()
+                    .let { dao ->
+                        val allSubTasks = mutableListOf<SubTask>()
+                        todos.forEach { todo ->
+                            allSubTasks.addAll(dao.getSubTasksByParentIdSync(todo.id))
+                        }
+                        allSubTasks
+                    }
+
+                val jsonArray = JSONArray()
+                todos.forEach { todo ->
+                    val todoJson = JSONObject().apply {
+                        put("id", todo.id)
+                        put("title", todo.title)
+                        put("description", todo.description)
+                        put("isCompleted", todo.isCompleted)
+                        put("priority", todo.priority.name)
+                        put("category", todo.category.name)
+                        put("dueDate", todo.dueDate?.toString())
+                        put("createdAt", todo.createdAt.toString())
+                        put("updatedAt", todo.updatedAt.toString())
+                        put("hasReminder", todo.hasReminder)
+                        put("reminderTime", todo.reminderTime?.toString())
+                        put("repeatType", todo.repeatType.name)
+                        put("repeatEndDate", todo.repeatEndDate?.toString())
+                    }
+
+                    // 添加子任务
+                    val subTasksJson = JSONArray()
+                    subTasks.filter { it.parentTodoId == todo.id }.forEach { subTask ->
+                        subTasksJson.put(JSONObject().apply {
+                            put("id", subTask.id)
+                            put("parentTodoId", subTask.parentTodoId)
+                            put("title", subTask.title)
+                            put("description", subTask.description)
+                            put("isCompleted", subTask.isCompleted)
+                            put("priority", subTask.priority.name)
+                            put("dueDate", subTask.dueDate?.toString())
+                            put("sortOrder", subTask.sortOrder)
+                        })
+                    }
+                    todoJson.put("subTasks", subTasksJson)
+                    jsonArray.put(todoJson)
+                }
+
+                // 写入文件
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(jsonArray.toString(2).toByteArray())
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    /**
+     * 从 JSON 文件导入待办事项
+     */
+    fun importFromUri(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val jsonStr = context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    inputStream.bufferedReader().use { it.readText() }
+                } ?: return@launch
+
+                val jsonArray = JSONArray(jsonStr)
+                val subTaskDao = TodoDatabase.getDatabase(context).subTaskDao()
+
+                for (i in 0 until jsonArray.length()) {
+                    val todoJson = jsonArray.getJSONObject(i)
+
+                    // 映射旧 ID 到新 ID
+                    val oldId = todoJson.getLong("id")
+
+                    val todoItem = TodoItem(
+                        id = 0, // 新插入，使用自增 ID
+                        title = todoJson.getString("title"),
+                        description = todoJson.optString("description", ""),
+                        isCompleted = todoJson.optBoolean("isCompleted", false),
+                        priority = try {
+                            Priority.valueOf(todoJson.getString("priority"))
+                        } catch (e: Exception) {
+                            Priority.MEDIUM
+                        },
+                        category = try {
+                            Category.valueOf(todoJson.getString("category"))
+                        } catch (e: Exception) {
+                            Category.OTHER
+                        },
+                        dueDate = todoJson.optString("dueDate", null)?.let { LocalDate.parse(it) },
+                        createdAt = todoJson.optString("createdAt", null)?.let { LocalDateTime.parse(it) } ?: LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now(),
+                        hasReminder = todoJson.optBoolean("hasReminder", false),
+                        reminderTime = todoJson.optString("reminderTime", null)?.let { LocalDateTime.parse(it) },
+                        repeatType = try {
+                            RepeatType.valueOf(todoJson.optString("repeatType", "NONE"))
+                        } catch (e: Exception) {
+                            RepeatType.NONE
+                        },
+                        repeatEndDate = todoJson.optString("repeatEndDate", null)?.let { LocalDate.parse(it) }
+                    )
+
+                    val newId = dao.insert(todoItem)
+
+                    // 导入子任务
+                    todoJson.optJSONArray("subTasks")?.let { subTasksJson ->
+                        for (j in 0 until subTasksJson.length()) {
+                            val subTaskJson = subTasksJson.getJSONObject(j)
+                            val subTask = SubTask(
+                                id = 0,
+                                parentTodoId = newId,
+                                title = subTaskJson.getString("title"),
+                                description = subTaskJson.optString("description", ""),
+                                isCompleted = subTaskJson.optBoolean("isCompleted", false),
+                                priority = try {
+                                    Priority.valueOf(subTaskJson.getString("priority"))
+                                } catch (e: Exception) {
+                                    Priority.MEDIUM
+                                },
+                                dueDate = subTaskJson.optString("dueDate", null)?.let { LocalDate.parse(it) },
+                                sortOrder = subTaskJson.optInt("sortOrder", j)
+                            )
+                            subTaskDao.insert(subTask)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

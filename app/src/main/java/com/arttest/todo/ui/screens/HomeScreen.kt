@@ -43,6 +43,7 @@ fun HomeScreen(
     onBatchDelete: () -> Unit = {},
     onBatchActive: () -> Unit = {},
     onSelectAll: () -> Unit = {},
+    onShowExportImportMenu: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showFilterMenu by remember { mutableStateOf(false) }
@@ -114,6 +115,14 @@ fun HomeScreen(
                         }
                     },
                     actions = {
+                        // 导出/导入菜单按钮
+                        IconButton(onClick = onShowExportImportMenu) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "更多",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         // 删除已完成按钮
                         if (uiState.completedCount > 0) {
                             IconButton(onClick = { showDeleteConfirm = true }) {
@@ -352,4 +361,59 @@ fun HomeScreen(
             shape = RoundedCornerShape(28.dp)
         )
     }
+}
+
+/**
+ * 导出/导入对话框
+ */
+@Composable
+fun ExportImportDialog(
+    onDismiss: () -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(Icons.Default.Storage, contentDescription = null)
+        },
+        title = { Text("数据管理") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "导出待办事项数据到 JSON 文件，或从 JSON 文件导入数据",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(
+                    onClick = onExport,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(Icons.Default.FileDownload, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("导出数据")
+                }
+                Button(
+                    onClick = onImport,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Icon(Icons.Default.FileUpload, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("导入数据")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        },
+        shape = RoundedCornerShape(28.dp)
+    )
 }

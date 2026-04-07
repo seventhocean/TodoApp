@@ -81,6 +81,9 @@ dependencies {
     // WorkManager for scheduled notifications
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
+    // JSON processing
+    implementation("org.json:json:20240303")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

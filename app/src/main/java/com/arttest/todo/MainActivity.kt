@@ -40,6 +40,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // 导出文件启动器
+    private val exportFileLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let { viewModel.exportToUri(this, it) }
+    }
+
+    // 导入文件启动器
+    private val importFileLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.importFromUri(this, it) }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -91,6 +105,7 @@ class MainActivity : ComponentActivity() {
         // 导航状态
         var editingTodo by remember { mutableStateOf<TodoItem?>(null) }
         var showAddDialog by remember { mutableStateOf(false) }
+        var showExportImportMenu by remember { mutableStateOf(false) }
 
         if (editingTodo != null) {
             // 编辑屏幕
@@ -134,7 +149,8 @@ class MainActivity : ComponentActivity() {
                 onBatchComplete = { viewModel.batchMarkCompleted() },
                 onBatchDelete = { viewModel.batchDelete() },
                 onBatchActive = { viewModel.batchMarkActive() },
-                onSelectAll = { viewModel.selectAll() }
+                onSelectAll = { viewModel.selectAll() },
+                onShowExportImportMenu = { showExportImportMenu = true }
             )
         }
 
@@ -150,6 +166,21 @@ class MainActivity : ComponentActivity() {
                         viewModel.scheduleReminder(todo)
                     }
                     showAddDialog = false
+                }
+            )
+        }
+
+        // 导出/导入菜单
+        if (showExportImportMenu) {
+            ExportImportDialog(
+                onDismiss = { showExportImportMenu = false },
+                onExport = {
+                    exportFileLauncher.launch("todo_backup_${System.currentTimeMillis()}.json")
+                    showExportImportMenu = false
+                },
+                onImport = {
+                    importFileLauncher.launch("application/json")
+                    showExportImportMenu = false
                 }
             )
         }

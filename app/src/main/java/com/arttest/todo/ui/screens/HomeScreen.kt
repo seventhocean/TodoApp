@@ -44,6 +44,7 @@ fun HomeScreen(
     onBatchActive: () -> Unit = {},
     onSelectAll: () -> Unit = {},
     onShowExportImportMenu: () -> Unit = {},
+    onShowStatistics: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showFilterMenu by remember { mutableStateOf(false) }
@@ -115,6 +116,14 @@ fun HomeScreen(
                         }
                     },
                     actions = {
+                        // 统计按钮
+                        IconButton(onClick = onShowStatistics) {
+                            Icon(
+                                imageVector = Icons.Default.BarChart,
+                                contentDescription = "统计",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         // 导出/导入菜单按钮
                         IconButton(onClick = onShowExportImportMenu) {
                             Icon(

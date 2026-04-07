@@ -101,13 +101,20 @@ class MainActivity : ComponentActivity() {
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
         val filterState by viewModel.filterState.collectAsState()
         val subTasksMap by viewModel.subTasksMap.collectAsStateWithLifecycle()
+        val statistics by viewModel.statistics.collectAsStateWithLifecycle()
 
         // 导航状态
         var editingTodo by remember { mutableStateOf<TodoItem?>(null) }
         var showAddDialog by remember { mutableStateOf(false) }
         var showExportImportMenu by remember { mutableStateOf(false) }
+        var showStatistics by remember { mutableStateOf(false) }
 
-        if (editingTodo != null) {
+        if (showStatistics) {
+            StatisticsScreen(
+                statistics = statistics,
+                onBack = { showStatistics = false }
+            )
+        } else if (editingTodo != null) {
             // 编辑屏幕
             EditTodoScreen(
                 todo = editingTodo!!,
@@ -150,7 +157,8 @@ class MainActivity : ComponentActivity() {
                 onBatchDelete = { viewModel.batchDelete() },
                 onBatchActive = { viewModel.batchMarkActive() },
                 onSelectAll = { viewModel.selectAll() },
-                onShowExportImportMenu = { showExportImportMenu = true }
+                onShowExportImportMenu = { showExportImportMenu = true },
+                onShowStatistics = { showStatistics = true }
             )
         }
 

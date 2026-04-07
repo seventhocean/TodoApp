@@ -39,6 +39,19 @@ enum class TodoFilterType {
 }
 
 /**
+ * 统计数据
+ */
+data class TodoStatistics(
+    val totalCount: Int = 0,
+    val completedCount: Int = 0,
+    val activeCount: Int = 0,
+    val completionRate: Float = 0f,
+    val categoryDistribution: Map<String, Int> = emptyMap(),
+    val priorityDistribution: Map<String, Int> = emptyMap(),
+    val weeklyCompletionData: List<Pair<String, Int>> = emptyList()
+)
+
+/**
  * UI 状态
  */
 data class TodoUiState(
@@ -89,6 +102,10 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
     val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
 
+    // 统计数据
+    private val _statistics = MutableStateFlow(TodoStatistics())
+    val statistics: StateFlow<TodoStatistics> = _statistics.asStateFlow()
+
     init {
         // 收集所有数据并组合
         viewModelScope.launch {
@@ -112,6 +129,45 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = state.copy(
                     isSelectionMode = _selectionMode.value,
                     selectedIds = _selectedIds.value
+                )
+            }
+        }
+
+        // 收集统计数据
+        viewModelScope.launch {
+            allTodosFlow.collect { todos ->
+                val completed = todos.count { it.isCompleted }
+                val active = todos.count { !it.isCompleted }
+                val completionRate = if (todos.isNotEmpty()) completed.toFloat() / todos.size else 0f
+
+                // 分类分布
+                val categoryDist = todos.groupingBy { it.category.name }.eachCount()
+
+                // 优先级分布
+                val priorityDist = todos.groupingBy { it.priority.name }.eachCount()
+
+                // 每周完成数据（过去 7 天）
+                val weeklyData = (0..6).map { daysAgo ->
+                    val date = LocalDate.now().minusDays(daysAgo.toLong())
+                    val count = todos.count { todo ->
+                        todo.isCompleted && todo.updatedAt.toLocalDate() == date
+                    }
+                    val dayName = when (daysAgo) {
+                        0 -> "今天"
+                        1 -> "昨天"
+                        else -> "${daysAgo}天前"
+                    }
+                    dayName to count
+                }.reversed()
+
+                _statistics.value = TodoStatistics(
+                    totalCount = todos.size,
+                    completedCount = completed,
+                    activeCount = active,
+                    completionRate = completionRate,
+                    categoryDistribution = categoryDist,
+                    priorityDistribution = priorityDist,
+                    weeklyCompletionData = weeklyData
                 )
             }
         }

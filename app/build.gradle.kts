@@ -84,6 +84,9 @@ dependencies {
     // JSON processing
     implementation("org.json:json:20240303")
 
+    // Compose 图表库
+    implementation("co.yml:ycharts:2.1.0")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalSoftwareKeyboard
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -44,11 +43,9 @@ fun AddEditTodoDialog(
     var showDatePicker by remember { mutableStateOf(false) }
 
     val focusRequester = remember { FocusRequester() }
-    val keyboardController = LocalSoftwareKeyboard.current
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
-        keyboardController?.show()
     }
 
     Dialog(

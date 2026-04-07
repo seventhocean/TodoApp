@@ -111,10 +111,9 @@ fun ToDoAppTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            typography // 使用带 Google Fonts 的版本
-        } else {
-            simpleTypography // 旧版本使用系统字体
+        typography = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> typography // 使用带 Google Fonts 的版本
+            else -> simpleTypography // 旧版本使用系统字体
         },
         content = content
     )

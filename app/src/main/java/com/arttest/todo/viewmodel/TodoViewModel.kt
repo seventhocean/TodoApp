@@ -3,8 +3,6 @@ package com.arttest.todo.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.asFlow
-import androidx.lifecycle.map
 import com.arttest.todo.data.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

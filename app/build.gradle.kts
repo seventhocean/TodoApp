@@ -78,6 +78,9 @@ dependencies {
     // DataStore
     implementation(libs.androidx.datastore.preferences)
 
+    // WorkManager for scheduled notifications
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

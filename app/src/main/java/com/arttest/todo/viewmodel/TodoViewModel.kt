@@ -4,10 +4,13 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.arttest.todo.data.*
+import com.arttest.todo.notification.NotificationHelper
+import com.arttest.todo.notification.ReminderWorker
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 
 /**
  * 筛选条件状态
@@ -45,6 +48,7 @@ data class TodoUiState(
 class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     private val dao = TodoDatabase.getDatabase(application).todoDao()
+    private val notificationHelper = NotificationHelper(application)
 
     // 所有 Todo 流
     private val allTodosFlow: Flow<List<TodoItem>> = dao.getAllTodos()
@@ -212,5 +216,60 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
      */
     suspend fun getTodoById(id: Long): TodoItem? {
         return dao.getTodoById(id)
+    }
+
+    // ============ 提醒管理 ============
+
+    /**
+     * 设置提醒
+     */
+    fun scheduleReminder(todo: TodoItem) {
+        todo.reminderTime?.let { reminderTime ->
+            val now = LocalDateTime.now()
+            val delayMillis = ChronoUnit.MILLIS.between(now, reminderTime)
+
+            if (delayMillis > 0) {
+                ReminderWorker.scheduleOneTimeReminder(
+                    context = getApplication(),
+                    todoId = todo.id,
+                    delayMillis = delayMillis
+                )
+            }
+        }
+    }
+
+    /**
+     * 取消提醒
+     */
+    fun cancelReminder(todo: TodoItem) {
+        ReminderWorker.cancelReminder(getApplication(), todo.id)
+        notificationHelper.cancelNotification(todo.id)
+    }
+
+    /**
+     * 删除待办时取消提醒
+     */
+    fun deleteTodoWithReminder(todo: TodoItem) {
+        viewModelScope.launch {
+            cancelReminder(todo)
+            dao.delete(todo)
+        }
+    }
+
+    /**
+     * 切换完成状态时管理提醒
+     */
+    fun toggleCompleteWithReminder(todo: TodoItem) {
+        viewModelScope.launch {
+            if (!todo.isCompleted) {
+                // 标记为完成时取消提醒
+                cancelReminder(todo)
+            }
+            dao.toggleComplete(
+                id = todo.id,
+                isCompleted = !todo.isCompleted,
+                updatedAt = LocalDateTime.now()
+            )
+        }
     }
 }

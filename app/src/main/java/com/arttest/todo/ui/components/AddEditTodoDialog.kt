@@ -40,7 +40,9 @@ fun AddEditTodoDialog(
     var category by remember { mutableStateOf(todo?.category ?: Category.OTHER) }
     var dueDate by remember { mutableStateOf(todo?.dueDate) }
     var hasReminder by remember { mutableStateOf(todo?.hasReminder ?: false) }
+    var reminderTime by remember { mutableStateOf(todo?.reminderTime) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showReminderTimePicker by remember { mutableStateOf(false) }
 
     val focusRequester = remember { FocusRequester() }
 
@@ -186,31 +188,59 @@ fun AddEditTodoDialog(
                 }
 
                 // 提醒开关
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = "设置提醒",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "到期时提醒我",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "设置提醒",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "到期时提醒我",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = hasReminder,
+                            onCheckedChange = { hasReminder = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
                         )
                     }
-                    Switch(
-                        checked = hasReminder,
-                        onCheckedChange = { hasReminder = it },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.primary,
-                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    )
+                    // 提醒时间选择
+                    if (hasReminder) {
+                        OutlinedButton(
+                            onClick = { showReminderTimePicker = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = reminderTime?.format(
+                                    java.time.format.DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
+                                ) ?: "选择提醒时间"
+                            )
+                        }
+                    }
                 }
 
                 // 操作按钮
@@ -226,6 +256,9 @@ fun AddEditTodoDialog(
                     Button(
                         onClick = {
                             if (title.isNotBlank()) {
+                                val finalReminderTime = if (hasReminder) {
+                                    reminderTime ?: dueDate?.atStartOfDay() ?: LocalDateTime.now().plusHours(1)
+                                } else null
                                 onSave(
                                     todo?.copy(
                                         title = title,
@@ -234,6 +267,7 @@ fun AddEditTodoDialog(
                                         category = category,
                                         dueDate = dueDate,
                                         hasReminder = hasReminder,
+                                        reminderTime = finalReminderTime,
                                         updatedAt = LocalDateTime.now()
                                     ) ?: TodoItem(
                                         title = title,
@@ -241,7 +275,8 @@ fun AddEditTodoDialog(
                                         priority = priority,
                                         category = category,
                                         dueDate = dueDate,
-                                        hasReminder = hasReminder
+                                        hasReminder = hasReminder,
+                                        reminderTime = finalReminderTime
                                     )
                                 )
                             }
@@ -266,6 +301,15 @@ fun AddEditTodoDialog(
             selectedDate = dueDate ?: LocalDate.now(),
             onDateSelected = { dueDate = it },
             onDismiss = { showDatePicker = false }
+        )
+    }
+
+    // 提醒时间选择器
+    if (showReminderTimePicker) {
+        ReminderTimePickerDialog(
+            selectedTime = reminderTime ?: (dueDate?.atStartOfDay() ?: LocalDateTime.now().plusHours(1)),
+            onTimeSelected = { reminderTime = it },
+            onDismiss = { showReminderTimePicker = false }
         )
     }
 }
@@ -361,6 +405,105 @@ private fun DatePickerDialog(
             Button(
                 onClick = {
                     onDateSelected(displayDate)
+                    onDismiss()
+                },
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        },
+        shape = RoundedCornerShape(28.dp)
+    )
+}
+
+/**
+ * 提醒时间选择器对话框
+ */
+@Composable
+private fun ReminderTimePickerDialog(
+    selectedTime: LocalDateTime,
+    onTimeSelected: (LocalDateTime) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var displayTime by remember { mutableStateOf(selectedTime) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("选择提醒时间") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 快速选择按钮
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AssistChip(
+                        onClick = { displayTime = LocalDateTime.now().plusHours(1) },
+                        label = { Text("1 小时后") },
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    AssistChip(
+                        onClick = { displayTime = LocalDateTime.now().plusHours(2) },
+                        label = { Text("2 小时后") },
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AssistChip(
+                        onClick = { displayTime = displayTime.minusMinutes(15) },
+                        label = { Text("-15 分钟") },
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    AssistChip(
+                        onClick = { displayTime = displayTime.plusMinutes(15) },
+                        label = { Text("+15 分钟") },
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 当前选择的时间
+                Text(
+                    text = displayTime.format(
+                        java.time.format.DateTimeFormatter.ofPattern("yyyy 年 MM 月 dd 日 HH:mm")
+                    ),
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                // 时间调整
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { displayTime = displayTime.minusHours(1) }) {
+                        Icon(Icons.Default.ChevronLeft, "前一小时")
+                    }
+                    Text(
+                        text = displayTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")),
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                    IconButton(onClick = { displayTime = displayTime.plusHours(1) }) {
+                        Icon(Icons.Default.ChevronRight, "后一小时")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onTimeSelected(displayTime)
                     onDismiss()
                 },
                 shape = RoundedCornerShape(20.dp)

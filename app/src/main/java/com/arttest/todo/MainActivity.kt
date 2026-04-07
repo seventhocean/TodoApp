@@ -1,13 +1,18 @@
 package com.arttest.todo
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.arttest.todo.ui.screens.HomeScreen
@@ -17,6 +22,7 @@ import com.arttest.todo.viewmodel.TodoViewModel
 import com.arttest.todo.data.TodoItem
 import com.arttest.todo.data.Category
 import com.arttest.todo.viewmodel.TodoFilterType
+import com.arttest.todo.notification.ReminderWorker
 
 /**
  * 主 Activity
@@ -24,12 +30,24 @@ import com.arttest.todo.viewmodel.TodoFilterType
 class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: TodoViewModel
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // 权限已授予
+        } else {
+            // 权限被拒绝
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // 初始化 ViewModel
         viewModel = ViewModelProvider(this)[TodoViewModel::class.java]
+
+        // 请求通知权限（Android 13+）
+        requestNotificationPermission()
 
         enableEdgeToEdge()
 
@@ -40,6 +58,25 @@ class MainActivity : ComponentActivity() {
                     color = androidx.compose.material3.MaterialTheme.colorScheme.background
                 ) {
                     TodoAppContent()
+                }
+            }
+        }
+    }
+
+    /**
+     * 请求通知权限（Android 13+）
+     */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    // 权限已授予
+                }
+                else -> {
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             }
         }
@@ -91,6 +128,10 @@ class MainActivity : ComponentActivity() {
                 onDismiss = { showAddDialog = false },
                 onSave = { todo ->
                     viewModel.insertTodo(todo)
+                    // 设置提醒
+                    if (todo.hasReminder && todo.reminderTime != null) {
+                        viewModel.scheduleReminder(todo)
+                    }
                     showAddDialog = false
                 }
             )

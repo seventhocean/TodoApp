@@ -27,6 +27,17 @@ enum class Category(val displayName: String) {
 }
 
 /**
+ * 重复类型枚举
+ */
+enum class RepeatType(val displayName: String) {
+    NONE("不重复"),
+    DAILY("每天"),
+    WEEKLY("每周"),
+    MONTHLY("每月"),
+    YEARLY("每年")
+}
+
+/**
  * Todo 数据实体
  */
 @Entity(tableName = "todo_items")
@@ -46,5 +57,8 @@ data class TodoItem(
     val updatedAt: LocalDateTime = LocalDateTime.now(),  // 更新时间
 
     val hasReminder: Boolean = false,     // 是否有提醒
-    val reminderTime: LocalDateTime? = null  // 提醒时间
+    val reminderTime: LocalDateTime? = null,  // 提醒时间
+
+    val repeatType: RepeatType = RepeatType.NONE,  // 重复类型
+    val repeatEndDate: LocalDate? = null  // 重复结束日期
 )

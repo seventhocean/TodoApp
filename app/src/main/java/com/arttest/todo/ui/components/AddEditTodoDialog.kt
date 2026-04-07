@@ -41,8 +41,11 @@ fun AddEditTodoDialog(
     var dueDate by remember { mutableStateOf(todo?.dueDate) }
     var hasReminder by remember { mutableStateOf(todo?.hasReminder ?: false) }
     var reminderTime by remember { mutableStateOf(todo?.reminderTime) }
+    var repeatType by remember { mutableStateOf(todo?.repeatType ?: com.arttest.todo.data.RepeatType.NONE) }
+    var repeatEndDate by remember { mutableStateOf(todo?.repeatEndDate) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showReminderTimePicker by remember { mutableStateOf(false) }
+    var showRepeatEndDatePicker by remember { mutableStateOf(false) }
 
     val focusRequester = remember { FocusRequester() }
 
@@ -243,6 +246,69 @@ fun AddEditTodoDialog(
                     }
                 }
 
+                // 重复任务设置
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "重复",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    // 重复类型选择
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RepeatType.entries.forEach { type ->
+                            FilterChip(
+                                selected = repeatType == type,
+                                onClick = { repeatType = type },
+                                label = { Text(type.displayName) },
+                                modifier = Modifier.weight(1f),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+                    // 重复结束日期
+                    if (repeatType != RepeatType.NONE) {
+                        OutlinedButton(
+                            onClick = { showRepeatEndDatePicker = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarToday,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = repeatEndDate?.format(
+                                    java.time.format.DateTimeFormatter.ofPattern("yyyy/MM/dd")
+                                ) ?: "选择结束日期"
+                            )
+                        }
+                        if (repeatEndDate != null) {
+                            IconButton(onClick = { repeatEndDate = null }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "清除结束日期",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // 操作按钮
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -268,6 +334,8 @@ fun AddEditTodoDialog(
                                         dueDate = dueDate,
                                         hasReminder = hasReminder,
                                         reminderTime = finalReminderTime,
+                                        repeatType = repeatType,
+                                        repeatEndDate = repeatEndDate,
                                         updatedAt = LocalDateTime.now()
                                     ) ?: TodoItem(
                                         title = title,
@@ -276,7 +344,9 @@ fun AddEditTodoDialog(
                                         category = category,
                                         dueDate = dueDate,
                                         hasReminder = hasReminder,
-                                        reminderTime = finalReminderTime
+                                        reminderTime = finalReminderTime,
+                                        repeatType = repeatType,
+                                        repeatEndDate = repeatEndDate
                                     )
                                 )
                             }
@@ -310,6 +380,15 @@ fun AddEditTodoDialog(
             selectedTime = reminderTime ?: (dueDate?.atStartOfDay() ?: LocalDateTime.now().plusHours(1)),
             onTimeSelected = { reminderTime = it },
             onDismiss = { showReminderTimePicker = false }
+        )
+    }
+
+    // 重复结束日期选择器
+    if (showRepeatEndDatePicker) {
+        DatePickerDialog(
+            selectedDate = repeatEndDate ?: LocalDate.now().plusMonths(1),
+            onDateSelected = { repeatEndDate = it },
+            onDismiss = { showRepeatEndDatePicker = false }
         )
     }
 }

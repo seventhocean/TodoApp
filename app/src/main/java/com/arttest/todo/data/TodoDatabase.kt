@@ -35,12 +35,18 @@ class Converters {
     @TypeConverter
     fun toLocalDateTime(value: String?): LocalDateTime? =
         value?.let { LocalDateTime.parse(it) }
+
+    @TypeConverter
+    fun fromRepeatType(repeatType: RepeatType): String = repeatType.name
+
+    @TypeConverter
+    fun toRepeatType(value: String): RepeatType = RepeatType.valueOf(value)
 }
 
 /**
  * Room 数据库
  */
-@Database(entities = [TodoItem::class, SubTask::class], version = 2, exportSchema = false)
+@Database(entities = [TodoItem::class, SubTask::class], version = 3, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class TodoDatabase : RoomDatabase() {
 

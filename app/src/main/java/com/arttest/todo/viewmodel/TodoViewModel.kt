@@ -39,7 +39,9 @@ data class TodoUiState(
     val totalCount: Int = 0,
     val activeCount: Int = 0,
     val completedCount: Int = 0,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isSelectionMode: Boolean = false,
+    val selectedIds: Set<Long> = emptySet()
 )
 
 /**
@@ -71,6 +73,13 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     private val _subTasksMap = MutableStateFlow<Map<Long, List<SubTask>>>(emptyMap())
     val subTasksMap: StateFlow<Map<Long, List<SubTask>>> = _subTasksMap.asStateFlow()
 
+    // 批量选择模式
+    private val _selectionMode = MutableStateFlow(false)
+    val selectionMode: StateFlow<Boolean> = _selectionMode.asStateFlow()
+
+    private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
+
     init {
         // 收集所有数据并组合
         viewModelScope.launch {
@@ -91,7 +100,10 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                     isLoading = false
                 )
             }.collect { state ->
-                _uiState.value = state
+                _uiState.value = state.copy(
+                    isSelectionMode = _selectionMode.value,
+                    selectedIds = _selectedIds.value
+                )
             }
         }
 
@@ -340,6 +352,94 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteSubTask(subTask: SubTask) {
         viewModelScope.launch {
             subTaskDao.delete(subTask)
+        }
+    }
+
+    // ============ 批量操作 ============
+
+    /**
+     * 切换选择模式
+     */
+    fun toggleSelectionMode() {
+        _selectionMode.value = !_selectionMode.value
+        if (!_selectionMode.value) {
+            _selectedIds.value = emptySet()
+        }
+    }
+
+    /**
+     * 切换单个待办选择状态
+     */
+    fun toggleSelection(todoId: Long) {
+        _selectedIds.value = if (todoId in _selectedIds.value) {
+            _selectedIds.value - todoId
+        } else {
+            _selectedIds.value + todoId
+        }
+    }
+
+    /**
+     * 全选
+     */
+    fun selectAll() {
+        _selectedIds.value = _uiState.value.filteredTodos.map { it.id }.toSet()
+    }
+
+    /**
+     * 取消所有选择
+     */
+    fun clearSelection() {
+        _selectedIds.value = emptySet()
+    }
+
+    /**
+     * 批量标记完成
+     */
+    fun batchMarkCompleted() {
+        viewModelScope.launch {
+            _selectedIds.value.forEach { id ->
+                val todo = dao.getTodoById(id)
+                todo?.let {
+                    dao.toggleComplete(id, true, LocalDateTime.now())
+                    if (it.hasReminder && it.reminderTime != null) {
+                        cancelReminder(it)
+                    }
+                }
+            }
+            _selectedIds.value = emptySet()
+            _selectionMode.value = false
+        }
+    }
+
+    /**
+     * 批量删除
+     */
+    fun batchDelete() {
+        viewModelScope.launch {
+            _selectedIds.value.forEach { id ->
+                val todo = dao.getTodoById(id)
+                todo?.let {
+                    if (it.hasReminder) {
+                        cancelReminder(it)
+                    }
+                    dao.delete(it)
+                }
+            }
+            _selectedIds.value = emptySet()
+            _selectionMode.value = false
+        }
+    }
+
+    /**
+     * 批量标记未完成
+     */
+    fun batchMarkActive() {
+        viewModelScope.launch {
+            _selectedIds.value.forEach { id ->
+                dao.toggleComplete(id, false, LocalDateTime.now())
+            }
+            _selectedIds.value = emptySet()
+            _selectionMode.value = false
         }
     }
 }

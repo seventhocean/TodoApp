@@ -128,7 +128,13 @@ class MainActivity : ComponentActivity() {
                 onFilterTypeSelected = { type -> viewModel.setFilterType(type) },
                 onCategorySelected = { category -> viewModel.setCategoryFilter(category) },
                 onSearchQueryChanged = { query -> viewModel.setSearchQuery(query) },
-                onDeleteCompleted = { viewModel.deleteCompleted() }
+                onDeleteCompleted = { viewModel.deleteCompleted() },
+                onToggleSelectionMode = { viewModel.toggleSelectionMode() },
+                onToggleItemSelection = { todoId -> viewModel.toggleSelection(todoId) },
+                onBatchComplete = { viewModel.batchMarkCompleted() },
+                onBatchDelete = { viewModel.batchDelete() },
+                onBatchActive = { viewModel.batchMarkActive() },
+                onSelectAll = { viewModel.selectAll() }
             )
         }
 

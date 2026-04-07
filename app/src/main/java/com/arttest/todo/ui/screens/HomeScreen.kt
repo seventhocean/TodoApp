@@ -37,10 +37,17 @@ fun HomeScreen(
     onCategorySelected: (Category?) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     onDeleteCompleted: () -> Unit,
+    onToggleSelectionMode: () -> Unit = {},
+    onToggleItemSelection: (Long) -> Unit = {},
+    onBatchComplete: () -> Unit = {},
+    onBatchDelete: () -> Unit = {},
+    onBatchActive: () -> Unit = {},
+    onSelectAll: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showFilterMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showBatchActionMenu by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -51,37 +58,78 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             // 顶部栏
-            TopAppBar(
-                title = {
-                    Column {
+            if (uiState.isSelectionMode) {
+                // 批量选择模式顶部栏
+                TopAppBar(
+                    title = {
                         Text(
-                            text = "待办事项",
+                            text = "已选择 ${uiState.selectedIds.size} 项",
                             style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
-                        Text(
-                            text = "${uiState.activeCount} 未完成 / ${uiState.totalCount} 总计",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    // 删除已完成按钮
-                    if (uiState.completedCount > 0) {
-                        IconButton(onClick = { showDeleteConfirm = true }) {
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onToggleSelectionMode) {
                             Icon(
-                                imageVector = Icons.Outlined.DeleteOutline,
-                                contentDescription = "删除已完成",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "取消选择",
+                                tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    },
+                    actions = {
+                        IconButton(onClick = onSelectAll) {
+                            Text(
+                                text = "全选",
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        IconButton(onClick = { showBatchActionMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "批量操作",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
                 )
-            )
+            } else {
+                // 正常模式顶部栏
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = "待办事项",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = "${uiState.activeCount} 未完成 / ${uiState.totalCount} 总计",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    actions = {
+                        // 删除已完成按钮
+                        if (uiState.completedCount > 0) {
+                            IconButton(onClick = { showDeleteConfirm = true }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.DeleteOutline,
+                                    contentDescription = "删除已完成",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
+            }
 
             // 搜索栏
             TodoSearchBar(
@@ -160,9 +208,28 @@ fun HomeScreen(
                     ) { todo ->
                         TodoItemCard(
                             todo = todo,
-                            onToggleComplete = { onToggleComplete(todo) },
-                            onEdit = { onEditTodo(todo) },
-                            onDelete = { onDeleteTodo(todo) }
+                            onToggleComplete = {
+                                if (uiState.isSelectionMode) {
+                                    onToggleItemSelection(todo.id)
+                                } else {
+                                    onToggleComplete(todo)
+                                }
+                            },
+                            onEdit = {
+                                if (!uiState.isSelectionMode) {
+                                    onEditTodo(todo)
+                                } else {
+                                    onToggleItemSelection(todo.id)
+                                }
+                            },
+                            onDelete = {
+                                if (!uiState.isSelectionMode) {
+                                    onDeleteTodo(todo)
+                                }
+                            },
+                            isInSelectionMode = uiState.isSelectionMode,
+                            isSelected = todo.id in uiState.selectedIds,
+                            onLongClick = { onToggleSelectionMode() }
                         )
                     }
                 }
@@ -219,6 +286,66 @@ fun HomeScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("取消")
+                }
+            },
+            shape = RoundedCornerShape(28.dp)
+        )
+    }
+
+    // 批量操作菜单
+    if (showBatchActionMenu) {
+        AlertDialog(
+            onDismissRequest = { showBatchActionMenu = false },
+            title = { Text("批量操作") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            onBatchComplete()
+                            showBatchActionMenu = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("标记为已完成")
+                    }
+                    Button(
+                        onClick = {
+                            onBatchActive()
+                            showBatchActionMenu = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    ) {
+                        Icon(Icons.Default.UnfoldLess, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("标记为未完成")
+                    }
+                    Button(
+                        onClick = {
+                            onBatchDelete()
+                            showBatchActionMenu = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("删除")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showBatchActionMenu = false }) {
                     Text("取消")
                 }
             },

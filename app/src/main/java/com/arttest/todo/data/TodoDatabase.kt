@@ -40,11 +40,12 @@ class Converters {
 /**
  * Room 数据库
  */
-@Database(entities = [TodoItem::class], version = 1, exportSchema = false)
+@Database(entities = [TodoItem::class, SubTask::class], version = 2, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class TodoDatabase : RoomDatabase() {
 
     abstract fun todoDao(): TodoDao
+    abstract fun subTaskDao(): SubTaskDao
 
     companion object {
         @Volatile

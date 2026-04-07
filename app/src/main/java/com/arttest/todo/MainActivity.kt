@@ -86,6 +86,7 @@ class MainActivity : ComponentActivity() {
     private fun TodoAppContent() {
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
         val filterState by viewModel.filterState.collectAsState()
+        val subTasksMap by viewModel.subTasksMap.collectAsStateWithLifecycle()
 
         // 导航状态
         var editingTodo by remember { mutableStateOf<TodoItem?>(null) }
@@ -95,6 +96,7 @@ class MainActivity : ComponentActivity() {
             // 编辑屏幕
             EditTodoScreen(
                 todo = editingTodo!!,
+                subTasks = subTasksMap[editingTodo!!.id] ?: emptyList(),
                 onBack = { editingTodo = null },
                 onSave = { todo ->
                     viewModel.updateTodo(todo)
@@ -103,6 +105,15 @@ class MainActivity : ComponentActivity() {
                 onDelete = { todo ->
                     viewModel.deleteTodo(todo)
                     editingTodo = null
+                },
+                onAddSubTask = { title, description, priority ->
+                    viewModel.addSubTask(editingTodo!!.id, title, description, priority)
+                },
+                onToggleSubTask = { subTask ->
+                    viewModel.toggleSubTaskComplete(subTask)
+                },
+                onDeleteSubTask = { subTask ->
+                    viewModel.deleteSubTask(subTask)
                 }
             )
         } else {

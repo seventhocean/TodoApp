@@ -48,6 +48,7 @@ data class TodoUiState(
 class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     private val dao = TodoDatabase.getDatabase(application).todoDao()
+    private val subTaskDao = TodoDatabase.getDatabase(application).subTaskDao()
     private val notificationHelper = NotificationHelper(application)
 
     // 所有 Todo 流
@@ -65,6 +66,10 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     // UI 状态
     private val _uiState = MutableStateFlow(TodoUiState())
     val uiState: StateFlow<TodoUiState> = _uiState.asStateFlow()
+
+    // 子任务流
+    private val _subTasksMap = MutableStateFlow<Map<Long, List<SubTask>>>(emptyMap())
+    val subTasksMap: StateFlow<Map<Long, List<SubTask>>> = _subTasksMap.asStateFlow()
 
     init {
         // 收集所有数据并组合
@@ -87,6 +92,19 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }.collect { state ->
                 _uiState.value = state
+            }
+        }
+
+        // 收集所有子任务数据
+        viewModelScope.launch {
+            allTodosFlow.collect { todos ->
+                val subTasksMap = mutableMapOf<Long, List<SubTask>>()
+                todos.forEach { todo ->
+                    subTaskDao.getSubTasksByParentIdSync(todo.id).let { subTasks ->
+                        subTasksMap[todo.id] = subTasks
+                    }
+                }
+                _subTasksMap.value = subTasksMap
             }
         }
     }
@@ -270,6 +288,58 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                 isCompleted = !todo.isCompleted,
                 updatedAt = LocalDateTime.now()
             )
+        }
+    }
+
+    // ============ 子任务管理 ============
+
+    /**
+     * 获取子任务列表
+     */
+    fun getSubTasks(todoId: Long): List<SubTask> {
+        return _subTasksMap.value[todoId] ?: emptyList()
+    }
+
+    /**
+     * 添加子任务
+     */
+    fun addSubTask(parentTodoId: Long, title: String, description: String = "", priority: Priority = Priority.MEDIUM) {
+        viewModelScope.launch {
+            val subTask = SubTask(
+                parentTodoId = parentTodoId,
+                title = title,
+                description = description,
+                priority = priority,
+                sortOrder = _subTasksMap.value[parentTodoId]?.size ?: 0
+            )
+            subTaskDao.insert(subTask)
+        }
+    }
+
+    /**
+     * 切换子任务完成状态
+     */
+    fun toggleSubTaskComplete(subTask: SubTask) {
+        viewModelScope.launch {
+            subTaskDao.toggleComplete(subTask.id, !subTask.isCompleted)
+        }
+    }
+
+    /**
+     * 更新子任务
+     */
+    fun updateSubTask(subTask: SubTask) {
+        viewModelScope.launch {
+            subTaskDao.update(subTask)
+        }
+    }
+
+    /**
+     * 删除子任务
+     */
+    fun deleteSubTask(subTask: SubTask) {
+        viewModelScope.launch {
+            subTaskDao.delete(subTask)
         }
     }
 }

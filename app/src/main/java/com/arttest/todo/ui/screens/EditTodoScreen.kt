@@ -2,7 +2,9 @@ package com.arttest.todo.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -12,8 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.arttest.todo.data.SubTask
 import com.arttest.todo.data.TodoItem
 import com.arttest.todo.ui.components.AddEditTodoDialog
+import com.arttest.todo.ui.components.AddSubTaskDialog
+import com.arttest.todo.ui.components.SubTaskList
 
 /**
  * 编辑 Todo 屏幕
@@ -22,13 +27,18 @@ import com.arttest.todo.ui.components.AddEditTodoDialog
 @Composable
 fun EditTodoScreen(
     todo: TodoItem,
+    subTasks: List<SubTask>,
     onBack: () -> Unit,
     onSave: (TodoItem) -> Unit,
     onDelete: (TodoItem) -> Unit,
+    onAddSubTask: (title: String, description: String, priority: com.arttest.todo.data.Priority) -> Unit,
+    onToggleSubTask: (SubTask) -> Unit,
+    onDeleteSubTask: (SubTask) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showEditDialog by remember { mutableStateOf(true) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showAddSubTaskDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier

@@ -15,12 +15,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import co.yml.charts.axis.AxisData
+import co.yml.charts.common.model.Point
 import co.yml.charts.ui.barchart.BarChart
 import co.yml.charts.ui.barchart.models.BarChartType
 import co.yml.charts.ui.barchart.models.BarStyle
 import co.yml.charts.ui.piechart.charts.PieChart
 import co.yml.charts.ui.piechart.models.PieChartConfig
 import co.yml.charts.ui.piechart.models.PieChartData
+import co.yml.charts.ui.piechart.models.PlotType
 import com.arttest.todo.viewmodel.TodoStatistics
 
 /**
@@ -221,23 +224,22 @@ private fun CompletionTrendChart(statistics: TodoStatistics) {
 
             if (statistics.weeklyCompletionData.isNotEmpty()) {
                 val barData = statistics.weeklyCompletionData.mapIndexed { index, (label, value) ->
-                    Pair(
-                        label,
-                        value.toFloat()
-                    )
+                    Point(index.toFloat(), value.toFloat())
                 }
+
+                val barChartData = co.yml.charts.ui.barchart.models.BarChartData(
+                    barChartType = BarChartType.VERTICAL,
+                    chartData = barData,
+                    barStyle = BarStyle(cornerRadius = 4.dp),
+                    xAxisData = AxisData.Builder().build(),
+                    yAxisData = AxisData.Builder().stepCount(5).build()
+                )
 
                 BarChart(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
-                    barChartData = co.yml.charts.ui.barchart.models.BarChartData(
-                        barChartType = BarChartType.VERTICAL,
-                        barsData = barData,
-                        barStyle = BarStyle(
-                            cornerRadius = 4.dp
-                        )
-                    )
+                    chartData = barChartData
                 )
             } else {
                 Text(
@@ -281,7 +283,6 @@ private fun CategoryDistributionChart(statistics: TodoStatistics) {
             if (statistics.categoryDistribution.isNotEmpty()) {
                 val slices = statistics.categoryDistribution.map { (category, count) ->
                     PieChartData.Slice(
-                        label = category,
                         value = count.toFloat(),
                         color = when (category) {
                             "WORK" -> Color(0xFF6750A4)
@@ -298,12 +299,11 @@ private fun CategoryDistributionChart(statistics: TodoStatistics) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
+                    plotType = PlotType.PIE,
                     pieChartConfig = PieChartConfig(
                         isAnimationEnable = true
                     ),
-                    pieChartData = PieChartData(
-                        slices = slices
-                    )
+                    slices = slices
                 )
             } else {
                 Text(

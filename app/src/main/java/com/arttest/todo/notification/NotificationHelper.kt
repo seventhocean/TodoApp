@@ -65,7 +65,7 @@ class NotificationHelper(private val context: Context) {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(description.ifEmpty { "待办事项提醒" })
             .setPriority(NotificationCompat.PRIORITY_HIGH)

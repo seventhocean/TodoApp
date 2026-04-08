@@ -15,14 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import co.yml.charts.axis.AxisData
-import co.yml.charts.common.model.Point
 import co.yml.charts.ui.barchart.BarChart
 import co.yml.charts.ui.barchart.models.BarChartType
 import co.yml.charts.ui.barchart.models.BarStyle
-import co.yml.charts.ui.barchart.models.SelectionHighlightData
-import co.yml.charts.ui.piechart.models.PieChartConfig
 import co.yml.charts.ui.piechart.charts.PieChart
+import co.yml.charts.ui.piechart.models.PieChartConfig
 import co.yml.charts.ui.piechart.models.PieChartData
 import com.arttest.todo.viewmodel.TodoStatistics
 
@@ -224,14 +221,9 @@ private fun CompletionTrendChart(statistics: TodoStatistics) {
 
             if (statistics.weeklyCompletionData.isNotEmpty()) {
                 val barData = statistics.weeklyCompletionData.mapIndexed { index, (label, value) ->
-                    co.yml.charts.ui.barchart.models.BarChartData(
-                        label = label,
-                        value = value.toFloat(),
-                        color = if (index == statistics.weeklyCompletionData.lastIndex) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.secondary
-                        }
+                    Pair(
+                        label,
+                        value.toFloat()
                     )
                 }
 
@@ -243,20 +235,9 @@ private fun CompletionTrendChart(statistics: TodoStatistics) {
                         barChartType = BarChartType.VERTICAL,
                         barsData = barData,
                         barStyle = BarStyle(
-                            cornerRadius = 4.dp,
-                            drawBarAnimation = true
-                        ),
-                        selectionHighlightData = SelectionHighlightData(
-                            highlightColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            cornerRadius = 4.dp
                         )
-                    ),
-                    xAxisData = AxisData.Builder()
-                        .axisStepSize(50.dp)
-                        .labelRotation(-45f)
-                        .build(),
-                    yAxisData = AxisData.Builder()
-                        .stepCount(5)
-                        .build()
+                    )
                 )
             } else {
                 Text(
@@ -298,8 +279,8 @@ private fun CategoryDistributionChart(statistics: TodoStatistics) {
             Spacer(modifier = Modifier.height(16.dp))
 
             if (statistics.categoryDistribution.isNotEmpty()) {
-                val pieChartData = statistics.categoryDistribution.map { (category, count) ->
-                    PieChartData(
+                val slices = statistics.categoryDistribution.map { (category, count) ->
+                    PieChartData.Slice(
                         label = category,
                         value = count.toFloat(),
                         color = when (category) {
@@ -318,12 +299,10 @@ private fun CategoryDistributionChart(statistics: TodoStatistics) {
                         .fillMaxWidth()
                         .height(200.dp),
                     pieChartConfig = PieChartConfig(
-                        isAnimationEnable = true,
-                        chartPadding = 4.dp
+                        isAnimationEnable = true
                     ),
                     pieChartData = PieChartData(
-                        slices = pieChartData,
-                        isSumVisible = true
+                        slices = slices
                     )
                 )
             } else {
@@ -390,7 +369,7 @@ private fun PriorityDistributionChart(statistics: TodoStatistics) {
                             Text(
                                 text = count.toString(),
                                 style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onColor
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))

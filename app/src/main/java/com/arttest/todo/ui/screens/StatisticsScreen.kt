@@ -1,5 +1,6 @@
 package com.arttest.todo.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,16 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import co.yml.charts.axis.AxisData
-import co.yml.charts.common.model.Point
-import co.yml.charts.ui.barchart.BarChart
-import co.yml.charts.ui.barchart.models.BarChartType
-import co.yml.charts.ui.barchart.models.BarStyle
-import co.yml.charts.ui.barchart.models.BarChartData
-import co.yml.charts.ui.piechart.charts.PieChart
-import co.yml.charts.ui.piechart.models.PieChartConfig
-import co.yml.charts.ui.piechart.models.PieChartData
-import co.yml.charts.ui.piechart.models.PlotType
 import com.arttest.todo.viewmodel.TodoStatistics
 
 /**
@@ -224,30 +215,41 @@ private fun CompletionTrendChart(statistics: TodoStatistics) {
             Spacer(modifier = Modifier.height(16.dp))
 
             if (statistics.weeklyCompletionData.isNotEmpty()) {
-                val bars = statistics.weeklyCompletionData.mapIndexed { index, (label, value) ->
-                    co.yml.charts.ui.barchart.models.Bar(
-                        label = label,
-                        value = value.toFloat()
-                    )
+                // 简单的条形图 - 使用 Row 和 Box 实现
+                statistics.weeklyCompletionData.forEach { (label, value) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(50.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(24.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(
+                                        alpha = 0.3f + (value.toFloat() / 20f).coerceAtMost(0.7f)
+                                    )
+                                )
+                        ) {
+                            Text(
+                                text = value.toString(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier
+                                    .align(Alignment.CenterStart)
+                                    .padding(start = 8.dp)
+                            )
+                        }
+                    }
                 }
-
-                val chartData = co.yml.charts.ui.barchart.models.ChartData(
-                    bars = bars
-                )
-
-                val barChartData = BarChartData(
-                    chartData = chartData,
-                    plotType = co.yml.charts.ui.barchart.models.PlotType.Bar,
-                    barChartType = BarChartType.VERTICAL,
-                    barStyle = BarStyle(cornerRadius = 4.dp)
-                )
-
-                BarChart(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    barChartData = barChartData
-                )
             } else {
                 Text(
                     text = "暂无数据",
@@ -288,35 +290,52 @@ private fun CategoryDistributionChart(statistics: TodoStatistics) {
             Spacer(modifier = Modifier.height(16.dp))
 
             if (statistics.categoryDistribution.isNotEmpty()) {
-                val slices = statistics.categoryDistribution.map { (category, count) ->
-                    co.yml.charts.ui.piechart.models.PieChartData.Slice(
-                        label = category,
-                        value = count.toFloat(),
-                        color = when (category) {
-                            "WORK" -> Color(0xFF6750A4)
-                            "PERSONAL" -> Color(0xFF006E1C)
-                            "SHOPPING" -> Color(0xFFBA1A1A)
-                            "HEALTH" -> Color(0xFF006874)
-                            "STUDY" -> Color(0xFF9C4400)
-                            else -> Color(0xFF666666)
+                // 简单的分类统计 - 使用列表展示
+                statistics.categoryDistribution.forEach { (category, count) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(
+                                        when (category) {
+                                            "WORK" -> Color(0xFF6750A4)
+                                            "PERSONAL" -> Color(0xFF006E1C)
+                                            "SHOPPING" -> Color(0xFFBA1A1A)
+                                            "HEALTH" -> Color(0xFF006874)
+                                            "STUDY" -> Color(0xFF9C4400)
+                                            else -> Color(0xFF666666)
+                                        }
+                                    )
+                            )
+                            Text(
+                                text = when (category) {
+                                    "WORK" -> "工作"
+                                    "PERSONAL" -> "个人"
+                                    "SHOPPING" -> "购物"
+                                    "HEALTH" -> "健康"
+                                    "STUDY" -> "学习"
+                                    else -> "其他"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
-                    )
+                        Text(
+                            text = count.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
-
-                val pieChartData = PieChartData(
-                    slices = slices
-                )
-
-                PieChart(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    pieChartData = pieChartData,
-                    plotType = PlotType.PIE,
-                    pieChartConfig = PieChartConfig(
-                        isAnimationEnable = true
-                    )
-                )
             } else {
                 Text(
                     text = "暂无数据",

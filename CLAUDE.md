@@ -8,6 +8,9 @@ Android Todo application built with Kotlin and Jetpack Compose, following Materi
 
 ## Build & Run Commands
 
+
+### 本地开发机器执行
+
 ```bash
 # Sync dependencies
 ./gradlew sync
@@ -21,6 +24,19 @@ Android Todo application built with Kotlin and Jetpack Compose, following Materi
 # Run tests
 ./gradlew test
 ./gradlew connectedAndroidTest  # Instrumentation tests
+```
+
+### 服务器开发（仅限代码编辑）
+
+```bash
+# 查看项目结构
+ls -la
+
+# Git 操作
+git status
+git add .
+git commit -m "message"
+git push
 ```
 
 **Requirements:**
